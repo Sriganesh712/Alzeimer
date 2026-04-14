@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+.gitignore
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+node_modules/
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+!backend/models/README.md
+scripts/
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
