@@ -4,6 +4,43 @@ from keras.preprocessing import image
 import os
 from tensorflow.keras.layers import Layer
 import tensorflow as tf
+import gdown
+
+MODEL_DIR = "models"
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+# -----------------------------
+# Model paths
+# -----------------------------
+CNN_PATH = os.path.join(MODEL_DIR, "cnn.h5")
+RESNET_PATH = os.path.join(MODEL_DIR, "resnet.keras")
+INCEPTION_PATH = os.path.join(MODEL_DIR, "inception.keras")
+
+# -----------------------------
+# Google Drive links (replace IDs)
+# -----------------------------
+CNN_URL = "https://drive.google.com/uc?id=1q4Lyy_fTjOEa3_AvbAm95436Tx7Czig6"
+RESNET_URL = "https://drive.google.com/uc?id=1qLO9B0JEQVHdy0M8HQLPqlK5p7WO8q2g"
+INCEPTION_URL = "https://drive.google.com/uc?id=1DotYMWW6ixvNpl12UopjWV3Pju5ytQcA"
+
+
+# -----------------------------
+# Download function
+# -----------------------------
+def download_model(path, url, name):
+    if not os.path.exists(path):
+        print(f"⬇️ Downloading {name} model...")
+        gdown.download(url, path, quiet=False)
+        print(f"✅ {name} downloaded")
+
+
+# -----------------------------
+# Ensure all models exist
+# -----------------------------
+download_model(CNN_PATH, CNN_URL, "CNN")
+download_model(RESNET_PATH, RESNET_URL, "ResNet")
+download_model(INCEPTION_PATH, INCEPTION_URL, "Inception")
+
 
 # Model paths
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
