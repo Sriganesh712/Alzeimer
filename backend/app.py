@@ -1,95 +1,68 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from predict import predict_all
-import os
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from predict import predict_all, cnn_model, resnet_model, inception_model
+from PIL import Image
+import io
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
+app = FastAPI(title="Alzheimer Detection API", version="2.0.0")
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# CORS setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # restrict in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 
-def allowed_file(filename):
-    """Check if file has allowed extension."""
+
+def allowed_file(filename: str):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route("/")
+
+@app.get("/")
 def home():
-    """Health check endpoint."""
-    return jsonify({
+    return {
         "status": "running",
         "message": "Alzheimer Detection API Running 🚀",
-        "version": "1.0.0"
-    })
+        "version": "2.0.0"
+    }
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    """
-    Predict Alzheimer's disease stage from uploaded brain scan image.
+
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
     
-    Expected: multipart/form-data with 'file' field
-    Returns: JSON with predictions from all models and ensemble
-    """
-    # Check if file is present in request
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    
-    file = request.files['file']
-    
-    # Check if file is selected
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-    
-    # Check if file type is allowed
     if not allowed_file(file.filename):
-        return jsonify({
-            "error": f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
-        }), 400
-    
-    try:
-        # Save file to uploads folder
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(filepath)
-        
-        # Get predictions from all models
-        results = predict_all(filepath)
-        
-        # Optionally remove file after prediction (uncomment to enable)
-        # os.remove(filepath)
-        
-        return jsonify(results), 200
-    
-    except Exception as e:
-        return jsonify({
-            "error": f"Prediction failed: {str(e)}"
-        }), 500
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
 
-@app.route("/health")
+    try:
+        contents = await file.read()
+
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
+
+        results = predict_all(image)
+
+        return results
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction failed: {str(e)}"
+        )
+
+
+@app.get("/health")
 def health():
-    """Detailed health check with model status."""
-    from predict import cnn_model, resnet_model, inception_model
-    
-    return jsonify({
+    return {
         "status": "healthy",
         "models": {
             "cnn": "loaded" if cnn_model else "not loaded",
             "resnet": "loaded" if resnet_model else "not loaded",
             "inception": "loaded" if inception_model else "not loaded"
         }
-    })
-
-if __name__ == "__main__":
-    print("\n" + "="*50)
-    print("🧠 Alzheimer Detection API")
-    print("="*50)
-    print("Starting server at http://127.0.0.1:5000")
-    print("Endpoints:")
-    print("  GET  /        - Health check")
-    print("  GET  /health  - Model status")
-    print("  POST /predict - Upload image for prediction")
-    print("="*50 + "\n")
-    
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    }
